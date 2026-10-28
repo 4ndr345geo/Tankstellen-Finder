@@ -1,0 +1,11 @@
+{
+  "name": "TankFinder",
+  "description": "Finde günstige Tankstellen und Spritpreise (Diesel, Super E5, Super E10) im frei wählbaren Umkreis um deinen Standort.",
+  "requestFramePermissions": [
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_COARSE_LOCATION"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
