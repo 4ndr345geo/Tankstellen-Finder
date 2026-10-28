@@ -42,7 +42,8 @@ data class FuelUiState(
     val detailHistoryFuelType: FuelType = FuelType.E5,
     val selectedStatState: com.example.data.model.FederalState = com.example.data.model.FederalState.BE,
     val selectedStatFuel: FuelType = FuelType.E5,
-    val twelveMonthHistory: com.example.data.model.TwelveMonthHistory? = null
+    val twelveMonthHistory: com.example.data.model.TwelveMonthHistory? = null,
+    val showWebviewDialog: Boolean = false
 ) {
     val filteredStations: List<Station>
         get() {
@@ -219,6 +220,10 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setShowCityPickerDialog(show: Boolean) {
         _uiState.update { it.copy(showCityPickerDialog = show) }
+    }
+
+    fun setShowWebviewDialog(show: Boolean) {
+        _uiState.update { it.copy(showWebviewDialog = show) }
     }
 
     fun saveApiKey(apiKey: String) {

@@ -85,9 +85,11 @@ import com.example.ui.components.PriceStatsBanner
 import com.example.ui.components.RadiusSelector
 import com.example.ui.components.StationCard
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Language
 import com.example.ui.dialogs.ApiKeyDialog
 import com.example.ui.dialogs.CityPickerDialog
 import com.example.ui.dialogs.StationDetailSheet
+import com.example.ui.dialogs.WebviewDialog
 import com.example.ui.tabs.TwelveMonthStatsTab
 import com.example.ui.theme.PriceCheapest
 import com.example.ui.theme.StatusOpen
@@ -142,6 +144,18 @@ fun FuelScreen(
                     }
                 },
                 actions = {
+                    // Web-Version action
+                    IconButton(
+                        onClick = { viewModel.setShowWebviewDialog(true) },
+                        modifier = Modifier.testTag("webview_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Web-Version anzeigen",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     // API Key Settings action
                     IconButton(
                         onClick = { viewModel.setShowApiKeyDialog(true) },
@@ -265,6 +279,12 @@ fun FuelScreen(
             isUsingCustomKey = state.isUsingCustomKey,
             onSave = { key -> viewModel.saveApiKey(key) },
             onDismiss = { viewModel.setShowApiKeyDialog(false) }
+        )
+    }
+
+    if (state.showWebviewDialog) {
+        WebviewDialog(
+            onDismissRequest = { viewModel.setShowWebviewDialog(false) }
         )
     }
 
@@ -737,6 +757,65 @@ private fun CalculatorAndInfoTabContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp
                     )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.setShowWebviewDialog(true) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Language,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Aufrufbare Web-Version",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Interaktives Web-Dashboard mit Live-Preisen & Rohöl-Charts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    FilledTonalButton(
+                        onClick = { viewModel.setShowWebviewDialog(true) }
+                    ) {
+                        Text("Öffnen")
+                    }
                 }
             }
         }
