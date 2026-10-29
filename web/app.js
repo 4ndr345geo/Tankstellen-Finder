@@ -424,20 +424,26 @@ const elements = {
 
 // ================= Initialization =================
 async function init() {
-  initTheme();
-  setupEventListeners();
-  await checkServerConfig();
-  loadStations();
-  renderFavorites();
-  render12MonthChart();
-  renderMonthChips();
-  renderSelectedMonthDetail();
-  recalculateSavings();
+  try { initTheme(); } catch (e) { console.error("Theme init error:", e); }
+  try { setupEventListeners(); } catch (e) { console.error("Events setup error:", e); }
+  try { await checkServerConfig(); } catch (e) { console.error("Server config check error:", e); }
+  try { loadStations(); } catch (e) { console.error("Load stations error:", e); }
+  try { renderFavorites(); } catch (e) { console.error("Favorites render error:", e); }
+  try { render12MonthChart(); } catch (e) { console.error("Chart render error:", e); }
+  try { renderMonthChips(); } catch (e) { console.error("Month chips render error:", e); }
+  try { renderSelectedMonthDetail(); } catch (e) { console.error("Month detail render error:", e); }
+  try { recalculateSavings(); } catch (e) { console.error("Savings calc error:", e); }
 }
 
 async function checkServerConfig() {
+  if (typeof window !== "undefined" && window.location.protocol === "file:") {
+    return;
+  }
   try {
-    const res = await fetch('/api/config');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch('/api/config', { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       if (data.hasConfiguredKey && data.apiKey) {

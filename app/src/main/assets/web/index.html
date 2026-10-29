@@ -83,6 +83,20 @@
       <section id="tab-stations" class="tab-pane active">
         <!-- Control Panel Card -->
         <div class="card control-card">
+          <!-- Search Address Bar -->
+          <div class="search-bar-row">
+            <div class="search-input-wrapper">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--color-text-muted)" class="search-icon">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+              <input type="text" id="addressInput" class="search-input" placeholder="Ort, PLZ oder Adresse suchen (z. B. Köln, 50667, München)...">
+              <button id="clearSearchBtn" class="clear-input-btn" style="display:none;" title="Eingabe löschen">×</button>
+            </div>
+            <button id="searchSubmitBtn" class="pill-btn primary" title="Adresse suchen">
+              <span>Suchen</span>
+            </button>
+          </div>
+
           <!-- Location Bar -->
           <div class="location-header">
             <div class="current-loc">
@@ -117,6 +131,15 @@
                 <option value="51.0504,13.7373">Dresden</option>
               </select>
             </div>
+          </div>
+
+          <!-- Live API Status Banner -->
+          <div id="apiStatusBanner" class="api-status-banner">
+            <div class="api-status-info">
+              <span class="status-indicator-dot" id="statusDot"></span>
+              <span id="apiStatusText">Echtzeitdaten werden geladen...</span>
+            </div>
+            <button id="bannerApiKeyBtn" class="banner-link-btn" title="API-Key verwalten">Key eintragen</button>
           </div>
 
           <!-- Fuel Type Segmented Filter -->
@@ -254,6 +277,7 @@
             </div>
             <div class="chart-legend">
               <span class="legend-item"><span class="legend-color e5"></span> Super E5 (€)</span>
+              <span class="legend-item"><span class="legend-color e10" style="background:#0ea5e9;"></span> Super E10 (€)</span>
               <span class="legend-item"><span class="legend-color diesel"></span> Diesel (€)</span>
               <span class="legend-item"><span class="legend-color brent"></span> Brent Öl ($)</span>
             </div>
