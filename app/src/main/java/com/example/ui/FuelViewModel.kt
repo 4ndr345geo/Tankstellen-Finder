@@ -64,24 +64,28 @@ data class FuelUiState(
         }
 
     val cheapestPrice: Double?
-        get() {
-            val prices = filteredStations.mapNotNull { it.getPriceFor(selectedFuel) }.filter { it > 0.0 }
-            return prices.minOrNull()
-        }
+        get() = getCheapestPriceFor(selectedFuel)
 
     val averagePrice: Double?
-        get() {
-            val prices = filteredStations.mapNotNull { it.getPriceFor(selectedFuel) }.filter { it > 0.0 }
-            return if (prices.isNotEmpty()) {
-                (prices.average() * 1000).roundToInt() / 1000.0
-            } else null
-        }
+        get() = getAveragePriceFor(selectedFuel)
 
     val highestPrice: Double?
         get() {
-            val prices = filteredStations.mapNotNull { it.getPriceFor(selectedFuel) }.filter { it > 0.0 }
+            val prices = filteredStations.mapNotNull { it.getPriceFor(selectedFuel) }.filter { it in 1.25..2.60 }
             return prices.maxOrNull()
         }
+
+    fun getAveragePriceFor(fuel: FuelType): Double? {
+        val prices = filteredStations.mapNotNull { it.getPriceFor(fuel) }.filter { it in 1.25..2.60 }
+        return if (prices.isNotEmpty()) {
+            ((prices.average() * 1000).roundToInt()) / 1000.0
+        } else null
+    }
+
+    fun getCheapestPriceFor(fuel: FuelType): Double? {
+        val prices = filteredStations.mapNotNull { it.getPriceFor(fuel) }.filter { it in 1.25..2.60 }
+        return prices.minOrNull()
+    }
 
     val maxSavings50L: Double?
         get() {
@@ -323,7 +327,7 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setStatState(state: com.example.data.model.FederalState) {
         val currentFuel = _uiState.value.selectedStatFuel
-        val anchor = _uiState.value.cheapestPrice ?: _uiState.value.averagePrice
+        val anchor = _uiState.value.getAveragePriceFor(currentFuel) ?: _uiState.value.getCheapestPriceFor(currentFuel)
         val stats = repository.getTwelveMonthStatistics(state, currentFuel, anchor)
         _uiState.update {
             it.copy(selectedStatState = state, twelveMonthHistory = stats)
@@ -332,7 +336,7 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setStatFuel(fuel: FuelType) {
         val currentState = _uiState.value.selectedStatState
-        val anchor = _uiState.value.filteredStations.mapNotNull { it.getPriceFor(fuel) }.average().takeIf { !it.isNaN() }
+        val anchor = _uiState.value.getAveragePriceFor(fuel) ?: _uiState.value.getCheapestPriceFor(fuel)
         val stats = repository.getTwelveMonthStatistics(currentState, fuel, anchor)
         _uiState.update {
             it.copy(selectedStatFuel = fuel, twelveMonthHistory = stats)
@@ -347,8 +351,9 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             st.selectedStatState
         }
-        val anchor = st.cheapestPrice ?: st.averagePrice
-        val stats = repository.getTwelveMonthStatistics(targetState, st.selectedStatFuel, anchor)
+        val targetFuel = st.selectedStatFuel
+        val anchor = st.getAveragePriceFor(targetFuel) ?: st.getCheapestPriceFor(targetFuel)
+        val stats = repository.getTwelveMonthStatistics(targetState, targetFuel, anchor)
         _uiState.update {
             it.copy(
                 selectedStatState = targetState,

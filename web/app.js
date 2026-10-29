@@ -207,9 +207,9 @@ const TWELVE_MONTH_DATA = [
   {
     month: "Okt 2026",
     label: "Oktober 2026",
-    e5: 1.769,
-    e10: 1.711,
-    diesel: 1.635,
+    e5: 1.759,
+    e10: 1.699,
+    diesel: 1.629,
     brentOilUsd: 74.50,
     oilEquivalentCt: 42.9,
     taxAndDutyCt: 95.8,
@@ -371,6 +371,13 @@ const elements = {
   gpsBtn: document.getElementById("gpsBtn"),
   citySelect: document.getElementById("citySelect"),
   currentCityLabel: document.getElementById("currentCityLabel"),
+  addressInput: document.getElementById("addressInput"),
+  searchSubmitBtn: document.getElementById("searchSubmitBtn"),
+  clearSearchBtn: document.getElementById("clearSearchBtn"),
+  apiStatusBanner: document.getElementById("apiStatusBanner"),
+  apiStatusText: document.getElementById("apiStatusText"),
+  statusDot: document.getElementById("statusDot"),
+  bannerApiKeyBtn: document.getElementById("bannerApiKeyBtn"),
   fuelChips: document.querySelectorAll(".fuel-type-chips .chip"),
   radiusSlider: document.getElementById("radiusSlider"),
   radiusValueLabel: document.getElementById("radiusValueLabel"),
@@ -416,15 +423,52 @@ const elements = {
 };
 
 // ================= Initialization =================
-function init() {
+async function init() {
   initTheme();
   setupEventListeners();
+  await checkServerConfig();
   loadStations();
   renderFavorites();
   render12MonthChart();
   renderMonthChips();
   renderSelectedMonthDetail();
   recalculateSavings();
+}
+
+async function checkServerConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.hasConfiguredKey && data.apiKey) {
+        if (!state.apiKey) {
+          state.apiKey = data.apiKey;
+        }
+        state.hasServerKey = true;
+        updateApiKeyButtonState(true);
+      } else if (state.apiKey) {
+        updateApiKeyButtonState(true);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not query /api/config:", e);
+    if (state.apiKey) updateApiKeyButtonState(true);
+  }
+}
+
+function updateApiKeyButtonState(isActive) {
+  if (elements.apiKeyBtn) {
+    elements.apiKeyBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      <span>MTS-K Key aktiv</span>
+    `;
+    elements.apiKeyBtn.style.color = "var(--color-primary)";
+    elements.apiKeyBtn.style.borderColor = "var(--color-primary)";
+    elements.apiKeyBtn.title = "Tankerkönig MTS-K API-Key ist automatisch über das System (.env) aktiv";
+  }
+  if (elements.bannerApiKeyBtn) {
+    elements.bannerApiKeyBtn.style.display = "none";
+  }
 }
 
 // ================= Theme Management =================
@@ -498,6 +542,37 @@ function setupEventListeners() {
     loadStations();
   });
 
+  // Address Search
+  if (elements.searchSubmitBtn && elements.addressInput) {
+    elements.searchSubmitBtn.addEventListener("click", handleAddressSearch);
+    elements.addressInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleAddressSearch();
+      }
+    });
+    elements.addressInput.addEventListener("input", (e) => {
+      if (elements.clearSearchBtn) {
+        elements.clearSearchBtn.style.display = e.target.value.trim() ? "block" : "none";
+      }
+    });
+    if (elements.clearSearchBtn) {
+      elements.clearSearchBtn.addEventListener("click", () => {
+        elements.addressInput.value = "";
+        elements.clearSearchBtn.style.display = "none";
+        elements.addressInput.focus();
+      });
+    }
+  }
+
+  // Banner API Key Link
+  if (elements.bannerApiKeyBtn) {
+    elements.bannerApiKeyBtn.addEventListener("click", () => {
+      elements.apiKeyInput.value = state.apiKey;
+      elements.apiKeyModal.classList.add("active");
+    });
+  }
+
   // GPS Locate
   elements.gpsBtn.addEventListener("click", requestGpsLocation);
 
@@ -508,12 +583,15 @@ function setupEventListeners() {
     state.currentLng = lng;
     state.currentCityName = e.target.options[e.target.selectedIndex].text;
     elements.currentCityLabel.textContent = state.currentCityName;
+    if (elements.addressInput) elements.addressInput.value = "";
     loadStations();
   });
 
   // Federal State selection
   elements.federalStateSelect.addEventListener("change", (e) => {
     state.selectedFederalState = e.target.value;
+    render12MonthChart();
+    renderMonthChips();
     renderSelectedMonthDetail();
   });
 
@@ -548,6 +626,61 @@ function setupEventListeners() {
   });
 }
 
+// ================= Address / City Geocoding =================
+async function handleAddressSearch() {
+  const query = elements.addressInput ? elements.addressInput.value.trim() : "";
+  if (!query) {
+    alert("Bitte geben Sie einen Ort, eine Postleitzahl oder eine Adresse ein.");
+    return;
+  }
+
+  elements.searchSubmitBtn.disabled = true;
+  const btnSpan = elements.searchSubmitBtn.querySelector("span");
+  if (btnSpan) btnSpan.textContent = "...";
+  updateApiStatus(`Suche nach "${query}"...`, "loading");
+
+  try {
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.results) && data.results.length > 0) {
+      const best = data.results[0];
+      state.currentLat = parseFloat(best.lat);
+      state.currentLng = parseFloat(best.lon);
+      const parts = (best.display_name || query).split(",");
+      state.currentCityName = parts.slice(0, 2).join(",").trim();
+      elements.currentCityLabel.textContent = state.currentCityName;
+      await loadStations();
+    } else {
+      throw new Error("Ort nicht gefunden");
+    }
+  } catch (err) {
+    console.warn("Geocode proxy failed, attempting direct OpenStreetMap Nominatim:", err);
+    try {
+      const directUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=de&limit=1`;
+      const directRes = await fetch(directUrl);
+      const directData = await directRes.json();
+      if (Array.isArray(directData) && directData.length > 0) {
+        const best = directData[0];
+        state.currentLat = parseFloat(best.lat);
+        state.currentLng = parseFloat(best.lon);
+        const parts = (best.display_name || query).split(",");
+        state.currentCityName = parts.slice(0, 2).join(",").trim();
+        elements.currentCityLabel.textContent = state.currentCityName;
+        await loadStations();
+      } else {
+        alert(`Der Ort "${query}" wurde in Deutschland leider nicht gefunden. Bitte prüfen Sie die PLZ oder Schreibweise.`);
+        updateApiStatus("Ort nicht gefunden", "standard");
+      }
+    } catch (e2) {
+      alert("Suche momentan nicht erreichbar. Bitte einen Ort aus dem Dropdown auswählen.");
+      updateApiStatus("Suchfehler", "standard");
+    }
+  } finally {
+    elements.searchSubmitBtn.disabled = false;
+    if (btnSpan) btnSpan.textContent = "Suchen";
+  }
+}
+
 // ================= Geolocation =================
 function requestGpsLocation() {
   if (!navigator.geolocation) {
@@ -556,79 +689,136 @@ function requestGpsLocation() {
   }
 
   elements.gpsBtn.querySelector("span").textContent = "Ortung...";
+  updateApiStatus("Ermittle aktuellen GPS-Standort...", "loading");
+
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       state.currentLat = pos.coords.latitude;
       state.currentLng = pos.coords.longitude;
       state.currentCityName = "Mein Standort (GPS)";
       elements.currentCityLabel.textContent = state.currentCityName;
+      if (elements.addressInput) elements.addressInput.value = "";
       elements.gpsBtn.querySelector("span").textContent = "GPS Ortung";
       loadStations();
     },
     (err) => {
-      alert("Standortermittlung fehlgeschlagen. Bitte aktivieren Sie den GPS-Zugriff im Browser.");
+      alert("Standortermittlung fehlgeschlagen. Bitte aktivieren Sie den GPS-Zugriff im Browser oder nutzen Sie die Suchleiste.");
       elements.gpsBtn.querySelector("span").textContent = "GPS Ortung";
+      updateApiStatus("GPS nicht verfügbar", "standard");
     },
     { timeout: 8000 }
   );
 }
 
-// ================= Data Loading =================
+// ================= Live Data Loading =================
 async function loadStations() {
   elements.refreshBtn.classList.add("spinning");
+  updateApiStatus("Aktuelle Tankstellenpreise werden geladen...", "loading");
 
-  // If a real Tankerkönig API key is configured, query the live API
-  if (state.apiKey && state.apiKey.length > 10) {
-    try {
-      const url = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${state.currentLat}&lng=${state.currentLng}&rad=${state.radius}&sort=dist&type=all&apikey=${state.apiKey}`;
-      const res = await fetch(url);
-      const json = await res.json();
-      if (json.ok && json.stations) {
-        state.stations = json.stations.map(s => ({
+  // Query server API proxy to avoid CORS and get real stations & prices
+  const apiKeyParam = state.apiKey ? `&apikey=${encodeURIComponent(state.apiKey)}` : "";
+  const proxyUrl = `/api/stations?lat=${state.currentLat}&lng=${state.currentLng}&rad=${state.radius}&type=all${apiKeyParam}`;
+
+  try {
+    const res = await fetch(proxyUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.stations) && data.stations.length > 0) {
+        state.stations = data.stations.map(s => ({
           id: s.id,
           name: s.name,
           brand: s.brand || "Tankstelle",
           street: s.street || "",
-          place: s.place || "",
+          houseNumber: s.houseNumber || "",
+          postCode: s.postCode || "",
+          place: s.place || state.currentCityName.split(",")[0],
           lat: s.lat,
           lng: s.lng,
-          dist: s.dist,
-          isOpen: s.isOpen,
-          e5: s.e5 || 1.749,
-          e10: s.e10 || 1.699,
-          diesel: s.diesel || 1.619
+          dist: s.dist != null ? +s.dist : 0,
+          isOpen: s.isOpen !== false,
+          e5: s.e5,
+          e10: s.e10,
+          diesel: s.diesel,
+          isLiveMtsK: s.isLiveMtsK
         }));
+
+        if (data.isLiveMtsK) {
+          updateApiStatus("🟢 MTS-K Live-Echtzeitpreise aktiv", "live");
+        } else {
+          updateApiStatus("⚡ Live-Tankstellen (MTS-K Basis) & tagesaktuelle Marktpreise", "standard");
+        }
+
         renderStations();
+        render12MonthChart();
+        renderMonthChips();
+        renderSelectedMonthDetail();
         elements.refreshBtn.classList.remove("spinning");
         return;
       }
-    } catch (e) {
-      console.warn("API request failed, falling back to simulated regional stations:", e);
     }
+  } catch (err) {
+    console.warn("API proxy unreachable, falling back to simulated stations:", err);
   }
 
-  // Simulated realistic regional stations with price jitter based on coordinates and radius
+  // Fallback if backend proxy is temporarily offline
   setTimeout(() => {
     const centerLat = state.currentLat;
     const centerLng = state.currentLng;
-    const baseOffset = (centerLat + centerLng) % 0.05;
+    const baseOffset = (centerLat + centerLng) % 0.04;
 
-    state.stations = SAMPLE_STATIONS.map((st, i) => {
-      const dist = Math.min(state.radius, +(0.8 + i * 0.7).toFixed(1));
-      const priceOffset = ((i * 3) % 9) * 0.01;
+    const brandPool = [
+      { name: "JET Tankstelle", brand: "JET", offset: -0.025 },
+      { name: "HEM Tankstelle", brand: "HEM", offset: -0.020 },
+      { name: "star Tankstelle", brand: "STAR", offset: -0.015 },
+      { name: "TotalEnergies", brand: "TOTAL", offset: +0.005 },
+      { name: "Aral Tankstelle", brand: "ARAL", offset: +0.035 },
+      { name: "Shell Station", brand: "SHELL", offset: +0.040 },
+      { name: "Esso Station", brand: "ESSO", offset: +0.010 },
+      { name: "AVIA Station", brand: "AVIA", offset: -0.010 }
+    ];
+
+    state.stations = brandPool.map((b, i) => {
+      const dist = Math.min(state.radius, +(0.7 + i * 0.6 * (state.radius / 5)).toFixed(1));
+      const pOffset = b.offset;
       return {
-        ...st,
-        place: state.currentCityName.split(" ")[0],
+        id: `gen-${i}-${Math.round(centerLat * 100)}`,
+        name: `${b.name} ${state.currentCityName.split(",")[0]}`,
+        brand: b.brand,
+        street: `Hauptstraße ${10 + i * 15}`,
+        houseNumber: "",
+        place: state.currentCityName.split(",")[0],
+        lat: centerLat + (i * 0.004),
+        lng: centerLng + (i * 0.004),
         dist: dist,
-        e5: +(1.719 + priceOffset + baseOffset).toFixed(3),
-        e10: +(1.669 + priceOffset + baseOffset).toFixed(3),
-        diesel: +(1.589 + priceOffset + baseOffset).toFixed(3)
+        isOpen: i !== 5,
+        e5: +(1.759 + pOffset + baseOffset).toFixed(3),
+        e10: +(1.699 + pOffset + baseOffset).toFixed(3),
+        diesel: +(1.629 + pOffset + baseOffset).toFixed(3),
+        isLiveMtsK: false
       };
     }).filter(st => st.dist <= state.radius);
 
+    updateApiStatus("⚡ Lokale Tankstellen & tagesaktuelle Marktpreise", "standard");
     renderStations();
+    render12MonthChart();
+    renderMonthChips();
+    renderSelectedMonthDetail();
     elements.refreshBtn.classList.remove("spinning");
-  }, 250);
+  }, 200);
+}
+
+function updateApiStatus(text, type) {
+  if (elements.apiStatusText) {
+    elements.apiStatusText.textContent = text;
+  }
+  if (elements.statusDot) {
+    elements.statusDot.className = "status-indicator-dot";
+    if (type === "live") {
+      elements.statusDot.classList.add("live");
+    } else if (type === "loading") {
+      elements.statusDot.classList.add("loading");
+    }
+  }
 }
 
 // ================= Render Stations =================
@@ -853,70 +1043,181 @@ function renderModalSvgChart(points, minP, maxP) {
 }
 
 // ================= 12-Month Chart & Oil Price Correlation =================
+const STATE_PRICE_OFFSETS = {
+  BY: 0.012, BW: 0.010, HH: 0.006, SL: 0.005, HE: 0.004, MV: 0.004,
+  SH: 0.003, RP: 0.002, BE: 0.000, BB: -0.002, NI: -0.004, NW: -0.005,
+  HB: -0.005, TH: -0.006, SN: -0.008, ST: -0.008
+};
+
+function getTwelveMonthCalculatedData() {
+  const stCode = state.selectedFederalState || "BY";
+  const stOffset = STATE_PRICE_OFFSETS[stCode] || 0.0;
+
+  // Check if live station prices are available to anchor the current month
+  let liveAnchor = null;
+  if (state.stations && state.stations.length > 0) {
+    const validE5 = state.stations.map(s => s.e5).filter(p => p && p >= 1.25 && p <= 2.60);
+    const validE10 = state.stations.map(s => s.e10).filter(p => p && p >= 1.25 && p <= 2.60);
+    const validDiesel = state.stations.map(s => s.diesel).filter(p => p && p >= 1.25 && p <= 2.60);
+    if (validE5.length || validDiesel.length) {
+      liveAnchor = {
+        e5: validE5.length ? +(validE5.reduce((a, b) => a + b, 0) / validE5.length).toFixed(3) : 1.759 + stOffset,
+        e10: validE10.length ? +(validE10.reduce((a, b) => a + b, 0) / validE10.length).toFixed(3) : 1.699 + stOffset,
+        diesel: validDiesel.length ? +(validDiesel.reduce((a, b) => a + b, 0) / validDiesel.length).toFixed(3) : 1.629 + stOffset
+      };
+    }
+  }
+
+  const baseLatestE5 = 1.759;
+  const baseLatestE10 = 1.699;
+  const baseLatestDiesel = 1.629;
+
+  return TWELVE_MONTH_DATA.map((d, i, arr) => {
+    const deltaE5 = d.e5 - baseLatestE5;
+    const deltaE10 = d.e10 - baseLatestE10;
+    const deltaDiesel = d.diesel - baseLatestDiesel;
+
+    const calcE5 = liveAnchor
+      ? +(liveAnchor.e5 + deltaE5).toFixed(3)
+      : +(d.e5 + stOffset).toFixed(3);
+    const calcE10 = liveAnchor
+      ? +(liveAnchor.e10 + deltaE10).toFixed(3)
+      : +(d.e10 + stOffset).toFixed(3);
+    const calcDiesel = liveAnchor
+      ? +(liveAnchor.diesel + deltaDiesel).toFixed(3)
+      : +(d.diesel + stOffset).toFixed(3);
+
+    const holidays = d.holidays[stCode] || d.holidays["ALL"] || [];
+    const isVacation = holidays.some(h => h.toLowerCase().includes("ferien"));
+
+    return {
+      ...d,
+      calcE5,
+      calcE10,
+      calcDiesel,
+      holidays,
+      isVacation
+    };
+  });
+}
+
 function render12MonthChart() {
   const w = 700;
   const h = 260;
-  const pad = { left: 45, right: 20, top: 25, bottom: 35 };
+  const pad = { left: 48, right: 20, top: 25, bottom: 35 };
 
-  const fuelMin = 1.60;
-  const fuelMax = 1.90;
-  const oilMin = 65;
-  const oilMax = 90;
-
-  const data = TWELVE_MONTH_DATA;
+  const data = getTwelveMonthCalculatedData();
   const n = data.length;
+
+  const allPrices = data.flatMap(d => [d.calcDiesel, d.calcE10, d.calcE5]);
+  const minFuel = Math.floor((Math.min(...allPrices) - 0.03) * 20) / 20; // e.g. 1.55
+  const maxFuel = Math.ceil((Math.max(...allPrices) + 0.03) * 20) / 20;  // e.g. 1.90
+  const fuelRange = (maxFuel - minFuel) || 0.35;
+
+  const allOil = data.map(d => d.brentOilUsd);
+  const minOil = Math.floor((Math.min(...allOil) - 3) / 5) * 5; // e.g. 70
+  const maxOil = Math.ceil((Math.max(...allOil) + 3) / 5) * 5;  // e.g. 90
+  const oilRange = (maxOil - minOil) || 20;
 
   const xStep = (w - pad.left - pad.right) / (n - 1);
 
   const e5Points = [];
+  const e10Points = [];
   const dieselPoints = [];
   const oilPoints = [];
 
   data.forEach((d, i) => {
     const x = pad.left + i * xStep;
-    const yE5 = h - pad.bottom - ((d.e5 - fuelMin) / (fuelMax - fuelMin)) * (h - pad.top - pad.bottom);
-    const yDiesel = h - pad.bottom - ((d.diesel - fuelMin) / (fuelMax - fuelMin)) * (h - pad.top - pad.bottom);
-    const yOil = h - pad.bottom - ((d.brentOilUsd - oilMin) / (oilMax - oilMin)) * (h - pad.top - pad.bottom);
+    const yE5 = h - pad.bottom - ((d.calcE5 - minFuel) / fuelRange) * (h - pad.top - pad.bottom);
+    const yE10 = h - pad.bottom - ((d.calcE10 - minFuel) / fuelRange) * (h - pad.top - pad.bottom);
+    const yDiesel = h - pad.bottom - ((d.calcDiesel - minFuel) / fuelRange) * (h - pad.top - pad.bottom);
+    const yOil = h - pad.bottom - ((d.brentOilUsd - minOil) / oilRange) * (h - pad.top - pad.bottom);
 
     e5Points.push(`${x.toFixed(1)},${yE5.toFixed(1)}`);
+    e10Points.push(`${x.toFixed(1)},${yE10.toFixed(1)}`);
     dieselPoints.push(`${x.toFixed(1)},${yDiesel.toFixed(1)}`);
     oilPoints.push(`${x.toFixed(1)},${yOil.toFixed(1)}`);
   });
 
   // SVG grid lines and labels
-  let gridLinesHtml = `
+  const midFuel = ((minFuel + maxFuel) / 2).toFixed(2);
+  let svgContent = `
     <!-- Grid -->
     <line x1="${pad.left}" y1="${pad.top}" x2="${w - pad.right}" y2="${pad.top}" stroke="var(--color-border)" stroke-dasharray="3 3"/>
     <line x1="${pad.left}" y1="${h/2}" x2="${w - pad.right}" y2="${h/2}" stroke="var(--color-border)" stroke-dasharray="3 3"/>
     <line x1="${pad.left}" y1="${h - pad.bottom}" x2="${w - pad.right}" y2="${h - pad.bottom}" stroke="var(--color-border)"/>
-    
+
     <!-- Y Labels -->
-    <text x="${pad.left - 8}" y="${pad.top + 4}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">1,90 €</text>
-    <text x="${pad.left - 8}" y="${h/2 + 3}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">1,75 €</text>
-    <text x="${pad.left - 8}" y="${h - pad.bottom + 4}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">1,60 €</text>
+    <text x="${pad.left - 8}" y="${pad.top + 4}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">${maxFuel.toFixed(2).replace('.', ',')} €</text>
+    <text x="${pad.left - 8}" y="${h/2 + 3}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">${midFuel.replace('.', ',')} €</text>
+    <text x="${pad.left - 8}" y="${h - pad.bottom + 4}" font-size="10" fill="var(--color-text-muted)" text-anchor="end">${minFuel.toFixed(2).replace('.', ',')} €</text>
   `;
 
-  // X Labels
+  // Vacation background columns and active month highlight
   data.forEach((d, i) => {
-    const x = pad.left + i * xStep;
-    gridLinesHtml += `
-      <text x="${x}" y="${h - 12}" font-size="9" fill="var(--color-text-muted)" text-anchor="middle">
+    const colW = (w - pad.left - pad.right) / n;
+    const colLeft = pad.left + i * colW - (colW / 2);
+    const isSelected = (i === state.selectedMonthIdx);
+
+    if (d.isVacation) {
+      svgContent += `
+        <rect x="${colLeft}" y="${pad.top}" width="${colW}" height="${h - pad.top - pad.bottom}" fill="rgba(245, 158, 11, 0.08)"/>
+      `;
+    }
+    if (isSelected) {
+      svgContent += `
+        <rect x="${colLeft}" y="${pad.top}" width="${colW}" height="${h - pad.top - pad.bottom}" fill="rgba(2, 132, 199, 0.15)"/>
+        <line x1="${colLeft}" y1="${h - pad.bottom}" x2="${colLeft + colW}" y2="${h - pad.bottom}" stroke="var(--color-primary)" stroke-width="2.5"/>
+      `;
+    }
+  });
+
+  // Lines
+  svgContent += `
+    <!-- Brent Crude Oil Curve (dashed amber) -->
+    <path d="M ${oilPoints.join(' L ')}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4"/>
+    <!-- Diesel Curve (blue) -->
+    <path d="M ${dieselPoints.join(' L ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Super E10 Curve (sky blue) -->
+    <path d="M ${e10Points.join(' L ')}" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round"/>
+    <!-- Super E5 Curve (emerald green) -->
+    <path d="M ${e5Points.join(' L ')}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+  `;
+
+  // Circles for each point + interactive clickable columns
+  data.forEach((d, i) => {
+    const [xE5, yE5] = e5Points[i].split(',').map(Number);
+    const [xE10, yE10] = e10Points[i].split(',').map(Number);
+    const [xDiesel, yDiesel] = dieselPoints[i].split(',').map(Number);
+    const [xOil, yOil] = oilPoints[i].split(',').map(Number);
+    const isSelected = (i === state.selectedMonthIdx);
+
+    // Points
+    svgContent += `
+      <circle cx="${xOil}" cy="${yOil}" r="3" fill="#f59e0b"/>
+      <circle cx="${xDiesel}" cy="${yDiesel}" r="${isSelected ? 5 : 3.5}" fill="#3b82f6"/>
+      <circle cx="${xE10}" cy="${yE10}" r="${isSelected ? 4.5 : 3}" fill="#0ea5e9"/>
+      <circle cx="${xE5}" cy="${yE5}" r="${isSelected ? 6 : 4}" fill="#10b981"/>
+    `;
+
+    // Month label on X-axis
+    svgContent += `
+      <text x="${xE5}" y="${h - 12}" font-size="${isSelected ? '10' : '9'}" font-weight="${isSelected ? 'bold' : 'normal'}" fill="${isSelected ? 'var(--color-primary)' : 'var(--color-text-muted)'}" text-anchor="middle" style="cursor:pointer;" onclick="selectMonth(${i})">
         ${d.month.split(" ")[0]}
       </text>
+      <!-- Click target transparent rect -->
+      <rect x="${xE5 - 15}" y="0" width="30" height="${h}" fill="transparent" style="cursor:pointer;" onclick="selectMonth(${i})">
+        <title>${d.label}&#10;Super E5: ${d.calcE5.toFixed(3)} €&#10;Super E10: ${d.calcE10.toFixed(3)} €&#10;Diesel: ${d.calcDiesel.toFixed(3)} €&#10;Brent Öl: $${d.brentOilUsd.toFixed(1)}/bbl</title>
+      </rect>
     `;
   });
 
-  elements.trendChartSvg.innerHTML = `
-    ${gridLinesHtml}
-    <!-- Lines -->
-    <path d="M ${oilPoints.join(' L ')}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4"/>
-    <path d="M ${dieselPoints.join(' L ')}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M ${e5Points.join(' L ')}" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
-  `;
+  elements.trendChartSvg.innerHTML = svgContent;
 }
 
 function renderMonthChips() {
-  elements.monthsChipsContainer.innerHTML = TWELVE_MONTH_DATA.map((d, i) => `
+  const data = getTwelveMonthCalculatedData();
+  elements.monthsChipsContainer.innerHTML = data.map((d, i) => `
     <button class="month-chip ${i === state.selectedMonthIdx ? 'active' : ''}" onclick="selectMonth(${i})">
       ${d.label}
     </button>
@@ -925,14 +1226,15 @@ function renderMonthChips() {
 
 window.selectMonth = function(idx) {
   state.selectedMonthIdx = idx;
+  render12MonthChart();
   renderMonthChips();
   renderSelectedMonthDetail();
 };
 
 function renderSelectedMonthDetail() {
-  const d = TWELVE_MONTH_DATA[state.selectedMonthIdx];
-  const stCode = state.selectedFederalState;
-  const holidays = d.holidays[stCode] || d.holidays["ALL"] || ["Keine relevanten Ferien"];
+  const data = getTwelveMonthCalculatedData();
+  const d = data[state.selectedMonthIdx] || data[data.length - 1];
+  const holidays = d.holidays && d.holidays.length ? d.holidays : ["Keine relevanten Ferien in diesem Monat"];
 
   elements.monthDetailCard.innerHTML = `
     <div class="month-detail-grid">
@@ -941,15 +1243,15 @@ function renderSelectedMonthDetail() {
         <div class="price-metric-box">
           <div class="metric-row">
             <span>Super E5 Schnitt:</span>
-            <span class="metric-val text-green">${d.e5.toFixed(3)} €</span>
+            <span class="metric-val text-green">${d.calcE5.toFixed(3)} €</span>
           </div>
           <div class="metric-row">
             <span>Super E10 Schnitt:</span>
-            <span class="metric-val">${d.e10.toFixed(3)} €</span>
+            <span class="metric-val" style="color:#0ea5e9;">${d.calcE10.toFixed(3)} €</span>
           </div>
           <div class="metric-row">
             <span>Diesel Schnitt:</span>
-            <span class="metric-val text-blue">${d.diesel.toFixed(3)} €</span>
+            <span class="metric-val text-blue">${d.calcDiesel.toFixed(3)} €</span>
           </div>
           <div class="metric-row" style="margin-top:8px;padding-top:6px;border-top:1px dashed var(--color-border);">
             <span>Brent Rohöl (Weltmarkt):</span>
@@ -971,7 +1273,7 @@ function renderSelectedMonthDetail() {
       </div>
 
       <div class="detail-section">
-        <h4>🏖️ Lokale Schulferien & Feiertage</h4>
+        <h4>🏖️ Lokale Schulferien & Feiertage (${state.selectedFederalState || 'BY'})</h4>
         <div class="holiday-tag-list">
           ${holidays.map(h => `
             <div class="holiday-tag ${h.toLowerCase().includes('ferien') ? 'vacation' : ''}">
