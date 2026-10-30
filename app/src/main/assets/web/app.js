@@ -356,7 +356,7 @@ const state = {
   fuelType: "e5", // "e5", "e10", "diesel"
   radius: 5,
   sortBy: "price", // "price", "dist"
-  apiKey: localStorage.getItem("tankerkoenig_api_key") || "",
+  apiKey: localStorage.getItem("tankerkoenig_api_key") || "f30e0ef2-57d3-447f-bd1e-ec5bcf7092f2",
   favorites: JSON.parse(localStorage.getItem("tankfinder_favs") || "[]"),
   stations: [],
   selectedFederalState: "TH",
@@ -763,7 +763,47 @@ async function loadStations() {
       }
     }
   } catch (err) {
-    console.warn("API proxy unreachable, falling back to simulated stations:", err);
+    console.warn("API proxy unreachable, attempting direct Tankerkönig API:", err);
+  }
+
+  // Direct fetch fallback for static hosts (e.g. GitHub Pages without Node backend)
+  const keyToUse = state.apiKey || "f30e0ef2-57d3-447f-bd1e-ec5bcf7092f2";
+  if (keyToUse && keyToUse.length > 10) {
+    try {
+      const directUrl = `https://creativecommons.tankerkoenig.de/json/list.php?lat=${state.currentLat}&lng=${state.currentLng}&rad=${state.radius}&sort=dist&type=all&apikey=${keyToUse}`;
+      const directRes = await fetch(directUrl);
+      if (directRes.ok) {
+        const directData = await directRes.json();
+        if (directData.ok && Array.isArray(directData.stations) && directData.stations.length > 0) {
+          state.stations = directData.stations.map(s => ({
+            id: s.id,
+            name: s.name,
+            brand: s.brand || "Tankstelle",
+            street: s.street || "",
+            houseNumber: s.houseNumber || "",
+            postCode: s.postCode || "",
+            place: s.place || state.currentCityName.split(",")[0],
+            lat: s.lat,
+            lng: s.lng,
+            dist: s.dist != null ? +s.dist : 0,
+            isOpen: s.isOpen !== false,
+            e5: s.e5,
+            e10: s.e10,
+            diesel: s.diesel,
+            isLiveMtsK: true
+          }));
+          updateApiStatus("🟢 MTS-K Live-Echtzeitpreise aktiv (GitHub Pages)", "live");
+          renderStations();
+          render12MonthChart();
+          renderMonthChips();
+          renderSelectedMonthDetail();
+          elements.refreshBtn.classList.remove("spinning");
+          return;
+        }
+      }
+    } catch (directErr) {
+      console.warn("Direct Tankerkönig fetch error:", directErr);
+    }
   }
 
   // Fallback if backend proxy is temporarily offline

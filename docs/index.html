@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TankFinder - Spritpreise & 12-Monate Rohöl-Analyse</title>
+  <meta name="description" content="Finden Sie die günstigsten Tankstellen in Ihrer Nähe mit 30-Tage Preishistorie, 12-Monate Statistik, Rohölpreis-Verlauf (Brent) und lokalen Schulferien & Feiertagen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33a2.5 2.5 0 0 0 2.5 2.5c.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>TankFinder</h1>
+          <span class="subtitle">Spritpreise & Rohöl-Statistik</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="icon-btn" title="Design umschalten">
+          <svg id="themeIcon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+          </svg>
+        </button>
+        <button id="apiKeyBtn" class="icon-btn" title="API-Schlüssel / Quelle">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+          </svg>
+        </button>
+        <button id="refreshBtn" class="icon-btn highlight" title="Aktualisieren">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="tab-stations">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M19.77 7.23l-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33a2.5 2.5 0 0 0 2.5 2.5c.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5z"/>
+        </svg>
+        <span>Tankstellen</span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-favorites">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span>Favoriten <span id="favCountBadge" class="badge">0</span></span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-stats">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+        </svg>
+        <span>12M & Ölpreis</span>
+      </button>
+
+      <button class="nav-tab" data-tab="tab-calc">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 2h5v2h-5V5zm0 4h5v2h-5V9zM6 7h5v2H6V7zm0 4h5v2H6v-2zm0 4h5v2H6v-2zm7 2h5v-5h-2v2h-3v3z"/>
+        </svg>
+        <span>Spar-Rechner</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- ================= TAB 1: TANKSTELLEN ================= -->
+      <section id="tab-stations" class="tab-pane active">
+        <!-- Control Panel Card -->
+        <div class="card control-card">
+          <!-- Search Address Bar -->
+          <div class="search-bar-row">
+            <div class="search-input-wrapper">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--color-text-muted)" class="search-icon">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+              <input type="text" id="addressInput" class="search-input" placeholder="Ort, PLZ oder Adresse suchen (z. B. Köln, 50667, München)...">
+              <button id="clearSearchBtn" class="clear-input-btn" style="display:none;" title="Eingabe löschen">×</button>
+            </div>
+            <button id="searchSubmitBtn" class="pill-btn primary" title="Adresse suchen">
+              <span>Suchen</span>
+            </button>
+          </div>
+
+          <!-- Location Bar -->
+          <div class="location-header">
+            <div class="current-loc">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--color-primary)">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              <div>
+                <span class="label-tiny">Aktueller Suchort</span>
+                <strong id="currentCityLabel">Weimar in Thüringen</strong>
+              </div>
+            </div>
+
+            <div class="loc-buttons">
+              <button id="gpsBtn" class="pill-btn primary" title="GPS-Standort abfragen">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                </svg>
+                <span>GPS Ortung</span>
+              </button>
+              <select id="citySelect" class="select-dropdown">
+                <option value="50.9803,11.3290" selected>Weimar in Thüringen</option>
+                <option value="50.9850,11.0290">Erfurt</option>
+                <option value="50.9270,11.5892">Jena</option>
+                <option value="52.5200,13.4050">Berlin</option>
+                <option value="48.1351,11.5820">München</option>
+                <option value="53.5511,9.9937">Hamburg</option>
+                <option value="50.9375,6.9603">Köln</option>
+                <option value="50.1109,8.6821">Frankfurt</option>
+                <option value="48.7758,9.1829">Stuttgart</option>
+                <option value="51.2277,6.7735">Düsseldorf</option>
+                <option value="51.5136,7.4653">Dortmund</option>
+                <option value="51.3397,12.3731">Leipzig</option>
+                <option value="49.4521,11.0767">Nürnberg</option>
+                <option value="52.3759,9.7320">Hannover</option>
+                <option value="51.0504,13.7373">Dresden</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live API Status Banner -->
+          <div id="apiStatusBanner" class="api-status-banner">
+            <div class="api-status-info">
+              <span class="status-indicator-dot" id="statusDot"></span>
+              <span id="apiStatusText">Echtzeitdaten werden geladen...</span>
+            </div>
+            <button id="bannerApiKeyBtn" class="banner-link-btn" title="API-Key verwalten">Key eintragen</button>
+          </div>
+
+          <!-- Fuel Type Segmented Filter -->
+          <div class="control-section">
+            <label class="section-label">Kraftstoffart:</label>
+            <div class="fuel-type-chips">
+              <button class="chip active" data-fuel="e5">Super E5</button>
+              <button class="chip" data-fuel="e10">Super E10</button>
+              <button class="chip" data-fuel="diesel">Diesel</button>
+            </div>
+          </div>
+
+          <!-- Radius Slider & Sort -->
+          <div class="control-row-grid">
+            <div class="slider-group">
+              <div class="slider-header">
+                <span>Suchradius:</span>
+                <strong id="radiusValueLabel">5 km</strong>
+              </div>
+              <input type="range" id="radiusSlider" min="1" max="25" step="1" value="5" class="custom-slider">
+              <div class="slider-ticks">
+                <span>1 km</span>
+                <span>10 km</span>
+                <span>25 km</span>
+              </div>
+            </div>
+
+            <div class="sort-group">
+              <label class="section-label">Sortierung:</label>
+              <div class="sort-buttons">
+                <button id="sortPriceBtn" class="sort-pill active">
+                  Günstigste zuerst
+                </button>
+                <button id="sortDistBtn" class="sort-pill">
+                  Nächste zuerst
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Overview Stats Card -->
+        <div id="statsSummaryCard" class="card stats-summary-card">
+          <div class="stat-item">
+            <span class="stat-label">Günstigste</span>
+            <div class="stat-value text-green" id="cheapestStat">1.71⁹ €</div>
+            <span class="stat-hint" id="cheapestName">JET</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-label">Durchschnitt</span>
+            <div class="stat-value" id="averageStat">1.76⁹ €</div>
+            <span class="stat-hint">im Suchradius</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-label">Ersparnis (50 L)</span>
+            <div class="stat-value text-blue" id="savingStat">bis zu 5,50 €</div>
+            <span class="stat-hint">vs. Teuerste</span>
+          </div>
+        </div>
+
+        <!-- Station List Header -->
+        <div class="list-header-row">
+          <h2 id="stationCountHeading">Gefundene Tankstellen (8)</h2>
+          <span class="live-pulse"><span class="pulse-dot"></span> Live-Preise MTS-K</span>
+        </div>
+
+        <!-- Station Cards Container -->
+        <div id="stationsList" class="stations-list">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: FAVORITEN ================= -->
+      <section id="tab-favorites" class="tab-pane">
+        <div class="card fav-intro-card">
+          <div class="fav-intro-icon">⭐</div>
+          <div>
+            <h3>Ihre gespeicherten Favoriten</h3>
+            <p>Behalten Sie Ihre Stammtankstellen stets im Blick und vergleichen Sie deren aktuelle Preise mit einem Klick.</p>
+          </div>
+        </div>
+
+        <div id="favoritesList" class="stations-list">
+          <!-- Populated via JS -->
+        </div>
+
+        <div id="emptyFavoritesState" class="empty-state">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--color-text-muted)">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <h3>Noch keine Favoriten</h3>
+          <p>Tippen Sie in der Tankstellenliste auf den Stern (★), um eine Tankstelle hier zu speichern.</p>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: 12M-STATISTIK & ÖLPREIS ================= -->
+      <section id="tab-stats" class="tab-pane">
+        <!-- Federal State Selector -->
+        <div class="card state-selector-card">
+          <div class="card-row">
+            <div class="selector-info">
+              <span class="badge-tag">Standort & Region</span>
+              <h3>Schulferien & Feiertage nach Bundesland</h3>
+              <p>Ferienbeginn und Brückentage führen erfahrungsgemäß zu erhöhter Kraftstoffnachfrage und Preisspitzen.</p>
+            </div>
+            <select id="federalStateSelect" class="state-select">
+              <option value="TH" selected>Thüringen (TH)</option>
+              <option value="BY">Bayern (BY)</option>
+              <option value="BW">Baden-Württemberg (BW)</option>
+              <option value="BE">Berlin (BE)</option>
+              <option value="BB">Brandenburg (BB)</option>
+              <option value="HB">Bremen (HB)</option>
+              <option value="HH">Hamburg (HH)</option>
+              <option value="HE">Hessen (HE)</option>
+              <option value="MV">Mecklenburg-Vorpommern (MV)</option>
+              <option value="NI">Niedersachsen (NI)</option>
+              <option value="NW">Nordrhein-Westfalen (NW)</option>
+              <option value="RP">Rheinland-Pfalz (RP)</option>
+              <option value="SL">Saarland (SL)</option>
+              <option value="SN">Sachsen (SN)</option>
+              <option value="ST">Sachsen-Anhalt (ST)</option>
+              <option value="SH">Schleswig-Holstein (SH)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 12 Month Chart Card -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <div>
+              <h3>12-Monats-Verlauf: Kraftstoff vs. Brent Rohöl</h3>
+              <span class="subtitle">Entwicklung der letzten 12 Monate im Vergleich</span>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-item"><span class="legend-color e5"></span> Super E5 (€)</span>
+              <span class="legend-item"><span class="legend-color e10" style="background:#0ea5e9;"></span> Super E10 (€)</span>
+              <span class="legend-item"><span class="legend-color diesel"></span> Diesel (€)</span>
+              <span class="legend-item"><span class="legend-color brent"></span> Brent Öl ($)</span>
+            </div>
+          </div>
+
+          <!-- SVG Chart -->
+          <div class="chart-container">
+            <svg id="trendChartSvg" viewBox="0 0 700 280" preserveAspectRatio="none">
+              <!-- Grid and lines generated dynamically via JS -->
+            </svg>
+          </div>
+
+          <div class="chart-footer-info">
+            <div class="info-pill">
+              <strong>Ölpreis heute:</strong> ~ 74,50 $ / Barrel
+            </div>
+            <div class="info-pill">
+              <strong>Rohöl-Anteil am Liter:</strong> ~ 43 ct (ohne Steuern)
+            </div>
+            <div class="info-pill">
+              <strong>Steuern & CO₂:</strong> ~ 92 - 105 ct pro Liter
+            </div>
+          </div>
+        </div>
+
+        <!-- Months Carousel / Selector -->
+        <div class="month-selector-bar">
+          <h3>Detail-Analyse pro Monat:</h3>
+          <div id="monthsChipsContainer" class="months-scroll">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Selected Month Detail Card -->
+        <div id="monthDetailCard" class="card month-detail-card">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- Educational Insight: Rocket & Feather Effect -->
+        <div class="card insight-card">
+          <div class="insight-icon">💡</div>
+          <div class="insight-body">
+            <h4>Hintergrund: Warum sinken die Preise so langsam bei fallendem Ölpreis?</h4>
+            <p>
+              In der Wirtschaftswissenschaft als <em>"Rockets and Feathers"</em> (Raketen und Federn) bekannt: Steigt der Rohölpreis an den Weltmärkten, reagieren die Tankstellenpreise blitzartig wie eine Rakete. Fällt der Ölpreis hingegen, sinken die Zapfsäulenpreise nur langsam wie eine fallende Feder. Gründe hierfür sind langfristige Raffineriekontrakte, Tanklagerbestände und Margenmitnahme.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: SPAR-RECHNER ================= -->
+      <section id="tab-calc" class="tab-pane">
+        <div class="card calc-card">
+          <div class="calc-header">
+            <div class="brand-icon">🧮</div>
+            <div>
+              <h3>Ihr persönlicher Spritkosten- & Spar-Rechner</h3>
+              <p>Berechnen Sie, wie viel Euro Sie pro Tankfüllung und im Jahr durch gezieltes Tanken sparen.</p>
+            </div>
+          </div>
+
+          <div class="calc-inputs-grid">
+            <div class="input-field">
+              <label>Tankvolumen (Liter):</label>
+              <div class="input-with-unit">
+                <input type="number" id="calcTankSize" value="55" min="20" max="120">
+                <span>Liter</span>
+              </div>
+            </div>
+
+            <div class="input-field">
+              <label>Fahrleistung im Jahr:</label>
+              <div class="input-with-unit">
+                <input type="number" id="calcKmYear" value="15000" min="1000" max="100000" step="500">
+                <span>km</span>
+              </div>
+            </div>
+
+            <div class="input-field">
+              <label>Durchschnittsverbrauch:</label>
+              <div class="input-with-unit">
+                <input type="number" id="calcConsumption" value="6.8" min="3" max="25" step="0.1">
+                <span>L / 100km</span>
+              </div>
+            </div>
+
+            <div class="input-field">
+              <label>Kraftstoffart:</label>
+              <select id="calcFuelType" class="select-dropdown">
+                <option value="e5" selected>Super E5</option>
+                <option value="e10">Super E10</option>
+                <option value="diesel">Diesel</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="calc-result-box">
+            <div class="result-tile">
+              <span class="tile-title">Ersparnis pro Tankfüllung</span>
+              <span class="tile-amount text-green" id="resTankSaving">6,60 €</span>
+              <span class="tile-sub">Günstigste vs. Teuerste Tankstelle</span>
+            </div>
+            <div class="result-tile highlight">
+              <span class="tile-title">Jährliche Gesamtersparnis</span>
+              <span class="tile-amount text-blue" id="resYearSaving">122,40 €</span>
+              <span class="tile-sub">bei ca. 18 Tankvorgängen / Jahr</span>
+            </div>
+            <div class="result-tile">
+              <span class="tile-title">Beste Uhrzeit zum Tanken</span>
+              <span class="tile-amount">18:00 – 21:30</span>
+              <span class="tile-sub">Morgens im Schnitt 10-15 ct teurer</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tips Card -->
+        <div class="card tips-card">
+          <h4>💡 Die 4 goldenen Regeln zum Spritsparen</h4>
+          <ul class="tips-list">
+            <li><strong>Abends tanken:</strong> Zwischen 18 und 22 Uhr sind die Preise am niedrigsten. Am teuersten ist es morgens zwischen 6 und 9 Uhr zur Berufsverkehrszeit.</li>
+            <li><strong>Autobahntankstellen meiden:</strong> Raststätten verlangen oft bis zu 35-45 Cent mehr pro Liter als Stationen nur wenige hundert Meter abseits der Ausfahrt.</li>
+            <li><strong>Reifendruck prüfen:</strong> 0,5 bar zu geringer Reifendruck erhöht den Rollwiderstand und damit den Verbrauch um ca. 3–5 %.</li>
+            <li><strong>Super E10 nutzen:</strong> E10 ist in Deutschland in der Regel 5-6 Cent günstiger als Super E5 und wird von 99% aller Benziner ab Baujahr 2000 problemlos vertragen.</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 30-Day History Modal -->
+    <div id="historyModal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <div>
+            <h3 id="modalStationTitle">JET Tankstelle</h3>
+            <span id="modalStationAddress" class="modal-sub">Musterstr. 12, Berlin</span>
+          </div>
+          <button id="modalCloseBtn" class="close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-price-badges">
+            <div class="badge-box">
+              <span>Aktuell</span>
+              <strong id="modalCurPrice">1.71⁹ €</strong>
+            </div>
+            <div class="badge-box green">
+              <span>30-Tage Tiefst</span>
+              <strong id="modalMinPrice">1.68⁹ €</strong>
+            </div>
+            <div class="badge-box red">
+              <span>30-Tage Höchst</span>
+              <strong id="modalMaxPrice">1.79⁹ €</strong>
+            </div>
+          </div>
+
+          <div class="modal-chart-box">
+            <h4>30-Tage Preisverlauf</h4>
+            <svg id="modalChartSvg" viewBox="0 0 500 200" preserveAspectRatio="none">
+              <!-- Rendered via JS -->
+            </svg>
+            <div class="chart-dates-row">
+              <span id="chartDateStart">vor 30 Tagen</span>
+              <span id="chartDateMid">vor 15 Tagen</span>
+              <span id="chartDateEnd">Heute</span>
+            </div>
+          </div>
+
+          <div class="modal-actions-row">
+            <a id="modalNavGoogle" href="#" target="_blank" class="btn btn-google">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              Google Maps
+            </a>
+            <a id="modalNavApple" href="#" target="_blank" class="btn btn-apple">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2zm0-10h2v8h-2z"/></svg>
+              Apple Maps
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key / Settings Modal -->
+    <div id="apiKeyModal" class="modal-backdrop">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>MTS-K & Tankerkönig API</h3>
+          <button id="apiKeyModalClose" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>
+            Diese Anwendung greift auf Daten der Markttransparenzstelle für Kraftstoffe (MTS-K) via <strong>Tankerkönig</strong> zu.
+          </p>
+          <div class="form-group">
+            <label for="apiKeyInput">Eigener Tankerkönig API-Key (Optional):</label>
+            <input type="text" id="apiKeyInput" placeholder="00000000-0000-0000-0000-000000000000">
+            <small>Kostenlos erhältlich auf <a href="https://creativecommons.tankerkoenig.de/" target="_blank">creativecommons.tankerkoenig.de</a></small>
+          </div>
+          <button id="saveApiKeyBtn" class="btn btn-primary full-width">Speichern</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
