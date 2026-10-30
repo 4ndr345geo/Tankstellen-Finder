@@ -505,14 +505,14 @@ class FuelRepository(
         sortOption: SortOption
     ): List<Station> {
         val brands = listOf(
-            Triple("ARAL", "Brunnenstraße 119", "13355 Berlin"),
-            Triple("Shell", "Jülicher Str. 1", "13357 Berlin"),
-            Triple("JET", "Holzmarktstraße 12", "10179 Berlin"),
-            Triple("TotalEnergies", "Margarete-Sommer-Str. 2", "10407 Berlin"),
-            Triple("HEM", "Prenzlauer Allee 60", "10405 Berlin"),
-            Triple("Sprint", "Kniprodestraße 44", "10407 Berlin"),
-            Triple("Star", "Landsberger Allee 180", "10369 Berlin"),
-            Triple("Avia", "Beusselstraße 28", "10553 Berlin")
+            Triple("TotalEnergies", "Erfurter Str. 53", "99423 Weimar"),
+            Triple("JET", "Buttelstedter Str. 2", "99427 Weimar"),
+            Triple("Aral", "Kromsdorfer Str. 13", "99427 Weimar"),
+            Triple("Shell", "Berkaer Str. 17", "99425 Weimar"),
+            Triple("Star", "Schwanseestraße 88", "99423 Weimar"),
+            Triple("HEM", "Erfurter Landstraße", "99427 Weimar"),
+            Triple("Sprint", "Rießnerstraße 25", "99427 Weimar"),
+            Triple("Avia", "Jenaer Str. 30", "99425 Weimar")
         )
 
         val baseDiesel = 1.639
@@ -528,8 +528,8 @@ class FuelRepository(
             val e10Price = ((baseE10 + priceOffset) * roundFactor).roundToInt() / roundFactor
 
             val pParts = city.split(" ", limit = 2)
-            val pCode = if (pParts.isNotEmpty()) pParts[0] else "10115"
-            val pPlace = if (pParts.size > 1) pParts[1] else "Berlin"
+            val pCode = if (pParts.isNotEmpty()) pParts[0] else "99423"
+            val pPlace = if (pParts.size > 1) pParts[1] else "Weimar"
 
             Station(
                 id = "mock-station-$index",

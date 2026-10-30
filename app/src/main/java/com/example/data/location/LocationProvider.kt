@@ -39,15 +39,18 @@ class LocationProvider(private val context: Context) {
         LocationServices.getFusedLocationProviderClient(context)
 
     companion object {
-        // Default starting point: Berlin Center
+        // Default starting point: Weimar in Thüringen
         val DEFAULT_LOCATION = LocationInfo(
-            latitude = 52.5200,
-            longitude = 13.4050,
-            label = "Berlin (Standard)",
+            latitude = 50.9803,
+            longitude = 11.3290,
+            label = "Weimar in Thüringen",
             isRealGps = false
         )
 
         val PRESET_CITIES = listOf(
+            CityPreset("Weimar", "Thüringen", 50.9803, 11.3290),
+            CityPreset("Erfurt", "Thüringen", 50.9850, 11.0290),
+            CityPreset("Jena", "Thüringen", 50.9270, 11.5892),
             CityPreset("Berlin", "Berlin", 52.5200, 13.4050),
             CityPreset("Hamburg", "Hamburg", 53.5511, 9.9937),
             CityPreset("München", "Bayern", 48.1351, 11.5820),

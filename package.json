@@ -1,0 +1,11 @@
+{
+  "name": "tankfinder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TankFinder Spritpreise und 12-Monats-Statistik",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  }
+}

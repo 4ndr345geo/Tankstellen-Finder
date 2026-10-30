@@ -40,7 +40,7 @@ data class FuelUiState(
     val selectedStationForDetail: Station? = null,
     val detailPriceHistory: StationPriceHistory? = null,
     val detailHistoryFuelType: FuelType = FuelType.E5,
-    val selectedStatState: com.example.data.model.FederalState = com.example.data.model.FederalState.BE,
+    val selectedStatState: com.example.data.model.FederalState = com.example.data.model.FederalState.TH,
     val selectedStatFuel: FuelType = FuelType.E5,
     val twelveMonthHistory: com.example.data.model.TwelveMonthHistory? = null,
     val showWebviewDialog: Boolean = false

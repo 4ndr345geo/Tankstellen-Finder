@@ -154,8 +154,8 @@ const server = http.createServer(async (req, res) => {
 
   // API Route: Gas Stations via Tankerkönig
   if (pathname === '/api/stations') {
-    const lat = parsedUrl.query.lat || '52.5200';
-    const lng = parsedUrl.query.lng || '13.4050';
+    const lat = parsedUrl.query.lat || '50.9803';
+    const lng = parsedUrl.query.lng || '11.3290';
     const rad = parsedUrl.query.rad || '5';
     const sort = parsedUrl.query.sort || 'dist';
     const type = parsedUrl.query.type || 'all';

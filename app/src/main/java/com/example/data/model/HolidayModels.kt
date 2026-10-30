@@ -27,6 +27,7 @@ enum class FederalState(val shortCode: String, val fullName: String) {
                 upper.contains(it.fullName.uppercase()) ||
                 upper.contains(it.shortCode)
             } ?: when {
+                upper.contains("WEIMAR") || upper.contains("ERFURT") || upper.contains("JENA") || upper.contains("GERA") -> TH
                 upper.contains("MÜNCHEN") || upper.contains("NÜRNBERG") || upper.contains("AUGSBURG") -> BY
                 upper.contains("KÖLN") || upper.contains("DÜSSELDORF") || upper.contains("DORTMUND") || upper.contains("ESSEN") -> NW
                 upper.contains("FRANKFURT") || upper.contains("WIESBADEN") || upper.contains("KASSEL") -> HE
@@ -35,7 +36,7 @@ enum class FederalState(val shortCode: String, val fullName: String) {
                 upper.contains("HAMBURG") -> HH
                 upper.contains("LEIPZIG") || upper.contains("DRESDEN") || upper.contains("CHEMNITZ") -> SN
                 upper.contains("BERLIN") -> BE
-                else -> BE
+                else -> TH
             }
         }
     }
