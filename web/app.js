@@ -366,7 +366,6 @@ const state = {
 // ================= DOM Elements =================
 const elements = {
   themeToggleBtn: document.getElementById("themeToggleBtn"),
-  apiKeyBtn: document.getElementById("apiKeyBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
   gpsBtn: document.getElementById("gpsBtn"),
   citySelect: document.getElementById("citySelect"),
@@ -377,7 +376,6 @@ const elements = {
   apiStatusBanner: document.getElementById("apiStatusBanner"),
   apiStatusText: document.getElementById("apiStatusText"),
   statusDot: document.getElementById("statusDot"),
-  bannerApiKeyBtn: document.getElementById("bannerApiKeyBtn"),
   fuelChips: document.querySelectorAll(".fuel-type-chips .chip"),
   radiusSlider: document.getElementById("radiusSlider"),
   radiusValueLabel: document.getElementById("radiusValueLabel"),
@@ -409,10 +407,6 @@ const elements = {
   modalChartSvg: document.getElementById("modalChartSvg"),
   modalNavGoogle: document.getElementById("modalNavGoogle"),
   modalNavApple: document.getElementById("modalNavApple"),
-  apiKeyModal: document.getElementById("apiKeyModal"),
-  apiKeyModalClose: document.getElementById("apiKeyModalClose"),
-  apiKeyInput: document.getElementById("apiKeyInput"),
-  saveApiKeyBtn: document.getElementById("saveApiKeyBtn"),
   // Calculator
   calcTankSize: document.getElementById("calcTankSize"),
   calcKmYear: document.getElementById("calcKmYear"),
@@ -463,18 +457,7 @@ async function checkServerConfig() {
 }
 
 function updateApiKeyButtonState(isActive) {
-  if (elements.apiKeyBtn) {
-    elements.apiKeyBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-      <span>MTS-K Key aktiv</span>
-    `;
-    elements.apiKeyBtn.style.color = "var(--color-primary)";
-    elements.apiKeyBtn.style.borderColor = "var(--color-primary)";
-    elements.apiKeyBtn.title = "Tankerkönig MTS-K API-Key ist automatisch über das System (.env) aktiv";
-  }
-  if (elements.bannerApiKeyBtn) {
-    elements.bannerApiKeyBtn.style.display = "none";
-  }
+  // Key is embedded and used automatically without requiring UI interaction
 }
 
 // ================= Theme Management =================
@@ -599,21 +582,6 @@ function setupEventListeners() {
     render12MonthChart();
     renderMonthChips();
     renderSelectedMonthDetail();
-  });
-
-  // API Key modal
-  elements.apiKeyBtn.addEventListener("click", () => {
-    elements.apiKeyInput.value = state.apiKey;
-    elements.apiKeyModal.classList.add("active");
-  });
-  elements.apiKeyModalClose.addEventListener("click", () => {
-    elements.apiKeyModal.classList.remove("active");
-  });
-  elements.saveApiKeyBtn.addEventListener("click", () => {
-    state.apiKey = elements.apiKeyInput.value.trim();
-    localStorage.setItem("tankerkoenig_api_key", state.apiKey);
-    elements.apiKeyModal.classList.remove("active");
-    loadStations();
   });
 
   // Detail Modal Close

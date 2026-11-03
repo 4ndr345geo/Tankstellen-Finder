@@ -24,6 +24,7 @@ const MIME_TYPES = {
 };
 
 const DEFAULT_DEMO_KEY = "00000000-0000-0000-0000-000000000002";
+const BUNDLED_API_KEY = "f30e0ef2-57d3-447f-bd1e-ec5bcf7092f2";
 
 /**
  * Loads Tankerkönig API key from environment variables or .env file
@@ -44,7 +45,7 @@ function loadEnvKey() {
   } catch (e) {
     console.warn("Could not read .env file:", e);
   }
-  return DEFAULT_DEMO_KEY;
+  return BUNDLED_API_KEY;
 }
 
 // Current German average fuel market baseline prices (Euro / Liter)

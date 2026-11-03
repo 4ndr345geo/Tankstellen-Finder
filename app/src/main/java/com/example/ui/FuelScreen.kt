@@ -86,7 +86,6 @@ import com.example.ui.components.RadiusSelector
 import com.example.ui.components.StationCard
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Language
-import com.example.ui.dialogs.ApiKeyDialog
 import com.example.ui.dialogs.CityPickerDialog
 import com.example.ui.dialogs.StationDetailSheet
 import com.example.ui.dialogs.WebviewDialog
@@ -153,18 +152,6 @@ fun FuelScreen(
                             imageVector = Icons.Default.Language,
                             contentDescription = "Web-Version anzeigen",
                             tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    // API Key Settings action
-                    IconButton(
-                        onClick = { viewModel.setShowApiKeyDialog(true) },
-                        modifier = Modifier.testTag("api_key_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Key,
-                            contentDescription = "API-Schlüssel / Info",
-                            tint = if (state.isUsingCustomKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -270,15 +257,6 @@ fun FuelScreen(
             onSelectCity = { city ->
                 viewModel.selectCity(city)
             }
-        )
-    }
-
-    if (state.showApiKeyDialog) {
-        ApiKeyDialog(
-            currentKey = state.customApiKey,
-            isUsingCustomKey = state.isUsingCustomKey,
-            onSave = { key -> viewModel.saveApiKey(key) },
-            onDismiss = { viewModel.setShowApiKeyDialog(false) }
         )
     }
 
@@ -500,7 +478,7 @@ private fun StationsTabContent(
 
         // MTS-K & CC BY 4.0 Attribution Footer
         item {
-            AttributionFooter(onOpenSettings = { viewModel.setShowApiKeyDialog(true) })
+            AttributionFooter()
         }
     }
 }
@@ -821,7 +799,7 @@ private fun CalculatorAndInfoTabContent(
         }
 
         item {
-            AttributionFooter(onOpenSettings = { viewModel.setShowApiKeyDialog(true) })
+            AttributionFooter()
         }
     }
 }
@@ -1025,13 +1003,10 @@ private fun SearchAndFilterSection(
 
 @Composable
 private fun AttributionFooter(
-    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onOpenSettings() },
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
@@ -1050,7 +1025,7 @@ private fun AttributionFooter(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Markttransparenzstelle für Kraftstoffe des Bundeskartellamtes • Tippen für API-Status",
+                text = "Markttransparenzstelle für Kraftstoffe des Bundeskartellamtes",
                 style = MaterialTheme.typography.bodySmall,
                 fontSize = 10.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
