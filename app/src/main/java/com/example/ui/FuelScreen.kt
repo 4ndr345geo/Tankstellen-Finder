@@ -606,8 +606,13 @@ private fun CalculatorAndInfoTabContent(
     viewModel: FuelViewModel
 ) {
     var tankVolume by remember { mutableFloatStateOf(50f) }
-    val cheapest = state.cheapestPrice ?: 1.639
-    val highest = state.highestPrice ?: 1.769
+    val cheapest = state.cheapestPrice ?: when (state.selectedFuel) {
+        FuelType.DIESEL -> 2.229
+        FuelType.E5 -> 1.989
+        FuelType.E10 -> 1.929
+        FuelType.ALL -> 1.989
+    }
+    val highest = state.highestPrice ?: (cheapest + 0.12)
     val totalCostMin = (cheapest * tankVolume * 100).roundToInt() / 100.0
     val totalCostMax = (highest * tankVolume * 100).roundToInt() / 100.0
     val savings = (totalCostMax - totalCostMin * 100).roundToInt() / 100.0

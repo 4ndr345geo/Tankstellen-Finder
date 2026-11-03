@@ -51,9 +51,9 @@ function loadEnvKey() {
 
 // Current German average fuel market baseline prices (Euro / Liter)
 const BASE_PRICES = {
-  e5: 1.759,
-  e10: 1.699,
-  diesel: 1.629
+  e5: 1.989,
+  e10: 1.929,
+  diesel: 2.229
 };
 
 /**
@@ -186,10 +186,23 @@ const server = http.createServer(async (req, res) => {
           let e10 = st.e10;
           let isLiveMtsK = isCustomKey;
 
-          // If demo key was used, Tankerkönig gives 1.009 for all prices
-          if (!isCustomKey || diesel === 1.009 || diesel == null || diesel <= 0) {
+          if (diesel != null && diesel !== false && diesel > 1.10 && diesel !== 1.009) {
+            diesel = +diesel;
+          } else {
             diesel = calculateRealisticPrice(st, 'diesel');
+            isLiveMtsK = false;
+          }
+
+          if (e5 != null && e5 !== false && e5 > 1.10 && e5 !== 1.009) {
+            e5 = +e5;
+          } else {
             e5 = calculateRealisticPrice(st, 'e5');
+            isLiveMtsK = false;
+          }
+
+          if (e10 != null && e10 !== false && e10 > 1.10 && e10 !== 1.009) {
+            e10 = +e10;
+          } else {
             e10 = calculateRealisticPrice(st, 'e10');
             isLiveMtsK = false;
           }
@@ -237,9 +250,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Dedicated route for downloading the built APK directly from build outputs
+  // Dedicated route for downloading the built APK directly from build outputs or root
   if (pathname === '/app-debug.apk' || pathname === '/TankFinder.apk') {
-    const apkPath = path.join(__dirname, 'app/build/outputs/apk/debug/app-debug.apk');
+    const rootApk = path.join(__dirname, 'TankFinder.apk');
+    const buildApk = path.join(__dirname, 'app/build/outputs/apk/debug/app-debug.apk');
+    const apkPath = fs.existsSync(rootApk) ? rootApk : buildApk;
     if (fs.existsSync(apkPath)) {
       const stats = fs.statSync(apkPath);
       res.writeHead(200, {

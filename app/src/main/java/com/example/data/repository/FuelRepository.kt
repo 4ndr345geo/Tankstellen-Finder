@@ -243,7 +243,6 @@ class FuelRepository(
     ): Result<List<Station>> = withContext(Dispatchers.IO) {
         val activeKey = getApiKey()
         val radIntOrFloat = radiusKm.coerceIn(1f, 25f)
-        val apiType = if (fuelType == FuelType.ALL) "all" else fuelType.apiParam
         val apiSort = if (sortOption == SortOption.PRICE) "price" else "dist"
 
         try {
@@ -253,22 +252,18 @@ class FuelRepository(
                     lng = lng,
                     rad = radIntOrFloat,
                     sort = apiSort,
-                    type = apiType,
+                    type = "all",
                     apiKey = activeKey
                 )
             } catch (e: Exception) {
-                if (apiType != "all") {
-                    apiService.getStations(
-                        lat = lat,
-                        lng = lng,
-                        rad = radIntOrFloat,
-                        sort = apiSort,
-                        type = "all",
-                        apiKey = activeKey
-                    )
-                } else {
-                    throw e
-                }
+                apiService.getStations(
+                    lat = lat,
+                    lng = lng,
+                    rad = radIntOrFloat,
+                    sort = "dist",
+                    type = "all",
+                    apiKey = activeKey
+                )
             }
 
             val favoriteIds = try {
@@ -281,7 +276,7 @@ class FuelRepository(
                 val isCustom = isUsingCustomKey()
                 val list = response.stations.map { dto ->
                     val domain = dto.toDomain(isFavorite = favoriteIds.contains(dto.id))
-                    sanitizeStationPrices(domain, isCustom)
+                    sanitizeStationPrices(domain, isCustom, fuelType)
                 }
 
                 val sorted = when (sortOption) {
@@ -375,10 +370,10 @@ class FuelRepository(
     fun getPriceHistory(station: Station, fuelType: FuelType): StationPriceHistory {
         val anchorPrice = station.getPriceFor(fuelType)?.takeIf { it > 0.0 }
             ?: when (fuelType) {
-                FuelType.DIESEL -> 1.639
-                FuelType.E5 -> 1.749
-                FuelType.E10 -> 1.689
-                FuelType.ALL -> 1.749
+                FuelType.DIESEL -> 2.229
+                FuelType.E5 -> 1.989
+                FuelType.E10 -> 1.929
+                FuelType.ALL -> 1.989
             }
 
         val shortDateFormat = SimpleDateFormat("dd. MMM", Locale.GERMAN)
@@ -459,49 +454,72 @@ class FuelRepository(
     ): TwelveMonthHistory = Companion.getTwelveMonthStatistics(state, fuelType, baseCurrentPrice)
 
 
-    private fun sanitizeStationPrices(station: Station, isCustomKey: Boolean): Station {
+    private fun sanitizeStationPrices(
+        station: Station,
+        isCustomKey: Boolean,
+        requestedFuel: FuelType = FuelType.E5
+    ): Station {
         val brandUpper = station.brand.uppercase(Locale.GERMAN)
         val brandOffset = when {
-            brandUpper.contains("ARAL") || brandUpper.contains("SHELL") -> 0.035
-            brandUpper.contains("JET") || brandUpper.contains("HEM") || brandUpper.contains("STAR") -> -0.020
-            brandUpper.contains("SB") || brandUpper.contains("SUPERMARKT") -> -0.030
-            brandUpper.contains("AVIA") || brandUpper.contains("TOTAL") || brandUpper.contains("ESSO") -> 0.005
+            brandUpper.contains("ARAL") || brandUpper.contains("SHELL") -> 0.020
+            brandUpper.contains("JET") || brandUpper.contains("HEM") || brandUpper.contains("STAR") -> -0.015
+            brandUpper.contains("SB") || brandUpper.contains("SUPERMARKT") -> -0.025
             else -> 0.0
         }
 
         val cal = Calendar.getInstance()
         val hour = cal.get(Calendar.HOUR_OF_DAY)
         val timeOffset = when (hour) {
-            in 6..8 -> 0.040
-            in 9..16 -> 0.015
-            in 17..21 -> -0.025
-            else -> 0.020
+            in 6..8 -> 0.030
+            in 9..16 -> 0.010
+            in 17..21 -> -0.020
+            else -> 0.015
         }
 
         val hash = Math.abs(station.id.hashCode()) % 7
-        val jitter = (hash - 3) * 0.005
+        val jitter = (hash - 3) * 0.004
 
         val roundPrice = { base: Double ->
             (((base + brandOffset + timeOffset + jitter) * 1000).roundToInt()) / 1000.0
         }
 
-        val d = if (!isCustomKey || station.diesel == null || station.diesel == 1.009 || station.diesel <= 0.0) {
-            roundPrice(1.629)
-        } else station.diesel
+        // Live prices from Tankerkönig take absolute priority
+        val d = if (station.diesel != null && station.diesel > 1.10 && station.diesel != 1.009) {
+            station.diesel
+        } else if (requestedFuel == FuelType.DIESEL && station.price != null && station.price > 1.10 && station.price != 1.009) {
+            station.price
+        } else {
+            roundPrice(2.229)
+        }
 
-        val e5 = if (!isCustomKey || station.e5 == null || station.e5 == 1.009 || station.e5 <= 0.0) {
-            roundPrice(1.759)
-        } else station.e5
+        val e5 = if (station.e5 != null && station.e5 > 1.10 && station.e5 != 1.009) {
+            station.e5
+        } else if (requestedFuel == FuelType.E5 && station.price != null && station.price > 1.10 && station.price != 1.009) {
+            station.price
+        } else {
+            roundPrice(1.989)
+        }
 
-        val e10 = if (!isCustomKey || station.e10 == null || station.e10 == 1.009 || station.e10 <= 0.0) {
-            roundPrice(1.699)
-        } else station.e10
+        val e10 = if (station.e10 != null && station.e10 > 1.10 && station.e10 != 1.009) {
+            station.e10
+        } else if (requestedFuel == FuelType.E10 && station.price != null && station.price > 1.10 && station.price != 1.009) {
+            station.price
+        } else {
+            roundPrice(1.929)
+        }
+
+        val activePrice = when (requestedFuel) {
+            FuelType.DIESEL -> d
+            FuelType.E5 -> e5
+            FuelType.E10 -> e10
+            FuelType.ALL -> station.price ?: e5
+        }
 
         return station.copy(
             diesel = d,
             e5 = e5,
             e10 = e10,
-            price = station.price ?: e5
+            price = activePrice
         )
     }
 
@@ -523,9 +541,9 @@ class FuelRepository(
             Triple("Avia", "Jenaer Str. 30", "99425 Weimar")
         )
 
-        val baseDiesel = 1.639
-        val baseE5 = 1.749
-        val baseE10 = 1.689
+        val baseDiesel = 2.229
+        val baseE5 = 1.989
+        val baseE10 = 1.929
 
         val result = brands.mapIndexed { index, (brand, street, city) ->
             val dist = ((index + 1) * 0.7 * (radiusKm / 10f)).coerceAtMost(radiusKm.toDouble())

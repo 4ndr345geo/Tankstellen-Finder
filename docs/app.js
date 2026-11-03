@@ -237,9 +237,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3142,
     dist: 1.1,
     isOpen: true,
-    e5: 1.769,
-    e10: 1.709,
-    diesel: 1.639
+    e5: 1.999,
+    e10: 1.939,
+    diesel: 2.239
   },
   {
     id: "jet-weimar-02",
@@ -252,9 +252,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3345,
     dist: 1.4,
     isOpen: true,
-    e5: 1.719,
-    e10: 1.669,
-    diesel: 1.589
+    e5: 1.989,
+    e10: 1.929,
+    diesel: 2.229
   },
   {
     id: "aral-weimar-03",
@@ -267,9 +267,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3478,
     dist: 1.6,
     isOpen: true,
-    e5: 1.799,
-    e10: 1.739,
-    diesel: 1.669
+    e5: 2.019,
+    e10: 1.959,
+    diesel: 2.259
   },
   {
     id: "shell-weimar-04",
@@ -282,9 +282,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3389,
     dist: 1.5,
     isOpen: true,
-    e5: 1.819,
-    e10: 1.759,
-    diesel: 1.679
+    e5: 1.999,
+    e10: 1.939,
+    diesel: 2.239
   },
   {
     id: "star-weimar-05",
@@ -297,9 +297,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3095,
     dist: 1.5,
     isOpen: true,
-    e5: 1.729,
-    e10: 1.679,
-    diesel: 1.599
+    e5: 1.989,
+    e10: 1.929,
+    diesel: 2.229
   },
   {
     id: "classic-weimar-06",
@@ -312,9 +312,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3210,
     dist: 1.9,
     isOpen: true,
-    e5: 1.739,
-    e10: 1.689,
-    diesel: 1.609
+    e5: 1.989,
+    e10: 1.929,
+    diesel: 2.229
   },
   {
     id: "avia-weimar-07",
@@ -327,9 +327,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3412,
     dist: 2.6,
     isOpen: true,
-    e5: 1.749,
-    e10: 1.699,
-    diesel: 1.619
+    e5: 1.999,
+    e10: 1.939,
+    diesel: 2.239
   },
   {
     id: "esso-weimar-08",
@@ -342,9 +342,9 @@ const SAMPLE_STATIONS = [
     lng: 11.3530,
     dist: 1.8,
     isOpen: true,
-    e5: 1.789,
-    e10: 1.729,
-    diesel: 1.659
+    e5: 2.009,
+    e10: 1.949,
+    diesel: 2.249
   }
 ];
 
@@ -805,9 +805,9 @@ async function loadStations() {
         lng: centerLng + (i * 0.004),
         dist: dist,
         isOpen: i !== 5,
-        e5: +(1.759 + pOffset + baseOffset).toFixed(3),
-        e10: +(1.699 + pOffset + baseOffset).toFixed(3),
-        diesel: +(1.629 + pOffset + baseOffset).toFixed(3),
+        e5: +(1.989 + pOffset + baseOffset).toFixed(3),
+        e10: +(1.929 + pOffset + baseOffset).toFixed(3),
+        diesel: +(2.229 + pOffset + baseOffset).toFixed(3),
         isLiveMtsK: false
       };
     }).filter(st => st.dist <= state.radius);
@@ -1075,16 +1075,16 @@ function getTwelveMonthCalculatedData() {
     const validDiesel = state.stations.map(s => s.diesel).filter(p => p && p >= 1.25 && p <= 2.60);
     if (validE5.length || validDiesel.length) {
       liveAnchor = {
-        e5: validE5.length ? +(validE5.reduce((a, b) => a + b, 0) / validE5.length).toFixed(3) : 1.759 + stOffset,
-        e10: validE10.length ? +(validE10.reduce((a, b) => a + b, 0) / validE10.length).toFixed(3) : 1.699 + stOffset,
-        diesel: validDiesel.length ? +(validDiesel.reduce((a, b) => a + b, 0) / validDiesel.length).toFixed(3) : 1.629 + stOffset
+        e5: validE5.length ? +(validE5.reduce((a, b) => a + b, 0) / validE5.length).toFixed(3) : 1.989 + stOffset,
+        e10: validE10.length ? +(validE10.reduce((a, b) => a + b, 0) / validE10.length).toFixed(3) : 1.929 + stOffset,
+        diesel: validDiesel.length ? +(validDiesel.reduce((a, b) => a + b, 0) / validDiesel.length).toFixed(3) : 2.229 + stOffset
       };
     }
   }
 
-  const baseLatestE5 = 1.759;
-  const baseLatestE10 = 1.699;
-  const baseLatestDiesel = 1.629;
+  const baseLatestE5 = 1.989;
+  const baseLatestE10 = 1.929;
+  const baseLatestDiesel = 2.229;
 
   return TWELVE_MONTH_DATA.map((d, i, arr) => {
     const deltaE5 = d.e5 - baseLatestE5;
