@@ -20,7 +20,8 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.apk': 'application/vnd.android.package-archive'
 };
 
 const DEFAULT_DEMO_KEY = "00000000-0000-0000-0000-000000000002";
@@ -236,6 +237,21 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // Dedicated route for downloading the built APK directly from build outputs
+  if (pathname === '/app-debug.apk' || pathname === '/TankFinder.apk') {
+    const apkPath = path.join(__dirname, 'app/build/outputs/apk/debug/app-debug.apk');
+    if (fs.existsSync(apkPath)) {
+      const stats = fs.statSync(apkPath);
+      res.writeHead(200, {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Content-Disposition': 'attachment; filename="TankFinder.apk"',
+        'Content-Length': stats.size
+      });
+      fs.createReadStream(apkPath).pipe(res);
+      return;
+    }
+  }
+
   // Static File Serving
   let reqPath = pathname === '/' ? '/index.html' : pathname;
   let safePath = path.normalize(path.join(WEB_DIR, reqPath));
@@ -262,7 +278,14 @@ const server = http.createServer(async (req, res) => {
         res.end('Internal Server Error');
         return;
       }
-      res.writeHead(200, { 'Content-Type': contentType });
+      const headers = {
+        'Content-Type': contentType,
+        'Content-Length': content.length
+      };
+      if (ext === '.apk') {
+        headers['Content-Disposition'] = 'attachment; filename="TankFinder.apk"';
+      }
+      res.writeHead(200, headers);
       res.end(content);
     });
   });

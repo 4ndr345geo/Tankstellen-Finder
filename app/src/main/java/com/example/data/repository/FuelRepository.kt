@@ -35,7 +35,15 @@ class FuelRepository(
     private val prefs: SharedPreferences =
         context.getSharedPreferences("tankfinder_prefs", Context.MODE_PRIVATE)
 
+    init {
+        val existing = prefs.getString(KEY_CUSTOM_API_KEY, null)?.trim()
+        if (existing.isNullOrBlank() || existing == DEFAULT_API_KEY) {
+            prefs.edit().putString(KEY_CUSTOM_API_KEY, BUNDLED_API_KEY).apply()
+        }
+    }
+
     companion object {
+        const val BUNDLED_API_KEY = "f30e0ef2-57d3-447f-bd1e-ec5bcf7092f2"
         const val DEFAULT_API_KEY = "00000000-0000-0000-0000-000000000002"
         private const val KEY_CUSTOM_API_KEY = "custom_api_key"
 
@@ -200,19 +208,21 @@ class FuelRepository(
 
     fun getApiKey(): String {
         val custom = prefs.getString(KEY_CUSTOM_API_KEY, null)?.trim()
-        if (!custom.isNullOrBlank()) return custom
+        if (!custom.isNullOrBlank() && custom != DEFAULT_API_KEY && custom.length > 10) {
+            return custom
+        }
         val buildKey = com.example.BuildConfig.TANKERKOENIG_API_KEY.trim()
-        if (buildKey.isNotBlank() && buildKey != DEFAULT_API_KEY) {
+        if (buildKey.isNotBlank() && buildKey != DEFAULT_API_KEY && buildKey.length > 10) {
             return buildKey
         }
-        return DEFAULT_API_KEY
+        return BUNDLED_API_KEY
     }
 
     fun saveCustomApiKey(key: String?) {
         val trimmed = key?.trim()
         prefs.edit().apply {
-            if (trimmed.isNullOrBlank()) {
-                remove(KEY_CUSTOM_API_KEY)
+            if (trimmed.isNullOrBlank() || trimmed == DEFAULT_API_KEY) {
+                putString(KEY_CUSTOM_API_KEY, BUNDLED_API_KEY)
             } else {
                 putString(KEY_CUSTOM_API_KEY, trimmed)
             }
@@ -220,10 +230,8 @@ class FuelRepository(
     }
 
     fun isUsingCustomKey(): Boolean {
-        val custom = prefs.getString(KEY_CUSTOM_API_KEY, null)?.trim()
-        if (!custom.isNullOrBlank()) return true
-        val buildKey = com.example.BuildConfig.TANKERKOENIG_API_KEY.trim()
-        return buildKey.isNotBlank() && buildKey != DEFAULT_API_KEY
+        val key = getApiKey()
+        return key.isNotBlank() && key != DEFAULT_API_KEY && key.length > 10
     }
 
     suspend fun getStations(
@@ -493,7 +501,7 @@ class FuelRepository(
             diesel = d,
             e5 = e5,
             e10 = e10,
-            price = e5
+            price = station.price ?: e5
         )
     }
 
